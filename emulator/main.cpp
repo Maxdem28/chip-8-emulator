@@ -1,4 +1,6 @@
 #include <iostream>
+#include <stdlib.h> 
+#include <time.h> 
 
 using namespace std;
 
@@ -17,7 +19,7 @@ struct CPUandRAM{
 CPUandRAM* InitState(){
     CPUandRAM* s = new CPUandRAM;
 
-    void* tmp = calloc(1024*4, 1);
+    void* tmp = calloc(1024*4, 1); //this will be redone by the file reading
     s->ram = (unsigned char*)tmp;
     s->screen = &s->ram[0xF00];
     s->SP = 0xFA0;
@@ -30,8 +32,7 @@ CPUandRAM* InitState(){
 
 
 /**
- * param: *program, pointer to start of the code
- * param: *pc, offset from start of the code to current instruction 
+ * param: *state, actual state of our system
  * Syntax is homemade based on AT&T syntax
  */
 
@@ -43,22 +44,23 @@ void execute(CPUandRAM *state){
     unsigned char nib1 = up & 0xf;
     unsigned char nib2 = (low >> 4);
     unsigned char nib3 = low & 0xf;
-    //printf("%04x %02x %02x ", pc, operation[0], operation[1]);
+    //printf("%04x %02x %02x\n", state->PC, operation[0], operation[1]);
 
     switch(nib0){
+        
         case 0x00: //we need to check for second 4 bits
+            //printf("%02x%02x", up, low);
             {
                 if (up == 0x00){
                     if (low == 0xE0){
-                        printf("CLRS"); //clear screen
-                        break;
+                        printf("CLRS\n"); //clear screen  
                     }
                     else if (low == 0xEE){
-                        printf("RET");  //return
-                        break;
+                        printf("RET\n");  //return
                     }
                 }
-                printf("CMCODE *%01x%02x", nib1, low);   //this instruction is almost never used
+                else{ printf("not implemented CMCODE *%01x%02x", nib1, low);}   //this instruction is almost never used
+                state->PC+=2;
                 break;
             }
         
@@ -77,31 +79,42 @@ void execute(CPUandRAM *state){
 
         case 0x03:
             { //SKPEQ VX $NN
-                printf("SKPEQ %%V%01x, $%02x", nib1, low);
+                if (state->V[nib1] == low){
+                    state->PC+=2;
+                }
+                state->PC+=2;
                 break;
             }
 
         case 0x04:
-            {//SKPEQ VX NN
-                printf("SKPNEQ %%V%01x, $%02x", nib1, low);
+            { //SKPNEQ VX $NN
+                if (state->V[nib1] != low){
+                    state->PC+=2;
+                }
+                state->PC+=2;
                 break;
             }
 
         case 0x05:
-            {//SKPEQ VX VY
-                printf("SKPEQ %%V%01x, %%V%01x", nib1, nib2);
+            { //SKPEQ VX VY
+                if (state->V[nib1] == state->V[nib2]){
+                    state->PC+=2;
+                }
+                state->PC+=2;
                 break;
             }
 
         case 0x06:
             {//MOV $NN VX
-                printf("MOV $%02x, %%V%01x", low, nib1); 
+                state->V[nib1] = low;
+                state->PC+=2; 
                 break;
             }
 
         case 0x07:
             {//ADD $NN VX
-                printf("ADD $%02x, %%V%01x", low, nib1); 
+                state->V[nib1] += low;
+                state->PC+=2; 
                 break;
             }
 
@@ -109,86 +122,114 @@ void execute(CPUandRAM *state){
             switch(nib3){
                 case 0x0:
                     {//MOV VY VX
-                        printf("MOV %%V%01x, %%V%01x", nib2, nib1); 
+                        state->V[nib1] = state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
                 case 0x1:
                     {//OR VY VX
-                        printf("OR %%V%01x, %%V%01x", nib2, nib1); 
+                        state->V[nib1] |= state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
                 case 0x2:
                     {//AND VY VX
-                        printf("AND %%V%01x, %%V%01x", nib2, nib1); 
+                        state->V[nib1] &= state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
                 case 0x3:
                     {//XOR VY VX
-                        printf("XOR %%V%01x, %%V%01x", nib2, nib1); 
+                        state->V[nib1] ^= state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
                 case 0x4:
-                    {//ADD. VY VX
-                        printf("ADD. %%V%01x, %%V%01x", nib2, nib1); 
+                    {//ADD. VY VX, check overflow
+                        unsigned short sum = state->V[nib1] + state->V[nib2];
+                        if (sum >= 0x100){state->V[0xF] = 1;}
+                        else {state->V[0xF] = 0;}
+                        state->V[nib1] += state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
                 case 0x5:
                     {//SUB. VY VX
-                        printf("SUB. %%V%01x, %%V%01x", nib2, nib1); 
+                        short sub = state->V[nib1] - state->V[nib2];
+                        if (sub < 0){state->V[0xF] = 1;}
+                        else {state->V[0xF] = 0;}
+                        state->V[nib1] -= state->V[nib2];
+                        state->PC+=2; 
                         break;
                     }
 
                 case 0x6:
                     {//SHR. VX
-                        printf("SHR. %%V%01x", nib2, nib1); 
+                        state->V[0xF] = (state->V[nib1] & 0x1);
+                        state->V[nib1] >>= 1;
+                        state->PC+=2; 
                         break;
                     }
 
                 case 0x7: // backward subs, instead of VX = VX - VY we have VX = VY - VX
-                    {//BSUB VY VX
-                        printf("BSUB. %%V%01x, %%V%01x", nib2, nib1); 
+                    {//SUB. VY VX
+                        short sub = state->V[nib2] - state->V[nib1];
+                        if (sub < 0){state->V[0xF] = 1;}
+                        else {state->V[0xF] = 0;}
+                        state->V[nib1] = state->V[nib2] - state->V[nib1];
+                        state->PC+=2; 
                         break;
                     }
 
                 case 0xE:
                     {//SHL. VX
-                        printf("SHL. %%V%01x", nib2, nib1); 
+                        state->V[0xF] = (state->V[nib1] & 0x80);
+                        state->V[nib1] <<= 1;
+                        state->PC+=2; 
                         break;
                     }
                 default:
                     {
-                        printf("Wrong instruction format");
+                        printf("Wrong instruction format %02x %02x", up, low);
                         break;
                     }
             }
             break;
         case 0x09:
-            {//SKPNEQ VX VY
-                printf("SKPNEQ %%V%01x, %%V%01x", nib1, nib2);
+            { //SKPNEQ VX VY
+                if (state->V[nib1] != state->V[nib2]){
+                    state->PC+=2;
+                }
+                state->PC+=2;
                 break;
             }
 
         case 0x0A:
             { //SETI $NNN
-                printf("SETI %01x%02x", nib1, low); //I is MAR
+                state->I = (nib1<<8) + low;
+                state->PC+=2;
                 break;
             }
 
         case 0x0B:
-            {//JMP $NNN(V0)
-                printf("JMP *%01x%02x(%%V1)", nib1, low);
+            {   //JMP $NNN(V0)
+                unsigned short target = (nib1<<8) + low + state->V[0];
+                state->PC = target;
                 break;
             }
 
         case 0x0C:
             {//RND VX $NN
-                printf("RND %%V%01x, $%02x", nib1, low); // VX = $NN & random(0,255)
+                unsigned char rnd = rand() % 256;
+                state->V[nib1] = rnd & low; // VX = $NN & random(0,255)
+                state->PC +=2;
                 break;
             }
 
         case 0x0D:
             {//DRAW VX VY $NN
                 printf("DRAW %%V%01x, %%V%01x, $%01x", nib1, nib2, nib3);
+                state->PC+=2;
                 break;
             }
 
@@ -219,7 +260,8 @@ void execute(CPUandRAM *state){
                 switch(low){
                     case 0x07:
                         {//MOV DELAY VX
-                            printf("MOV DELAY, %%V%01x", nib1);
+                            state->V[nib1] = state->delay;
+                            state->PC+=2;
                             break; 
                         }
                     case 0x0A:
@@ -229,17 +271,20 @@ void execute(CPUandRAM *state){
                         }
                     case 0x15:
                         {//MOV VX DELAY
-                            printf("MOV %%V%01x, DELAY", nib1);
+                            state->delay = state->V[nib1];
+                            state->PC+=2;
                             break;
                         }
                     case 0x18:
                         {//MOV VX SOUND
-                            printf("MOV %%V%01x, SOUND", nib1);
+                            state->sound = state->V[nib1];
+                            state->PC+=2;
                             break;
                         }
                     case 0x1E:
                         {//ADD VX I
-                            printf("ADD %%V%01x, I", nib1); 
+                            state->I += state->V[nib1];
+                            state->PC+=2;
                             break;
                         }
                     case 0x29:
@@ -249,17 +294,34 @@ void execute(CPUandRAM *state){
                         }
                     case 0x33:
                         {//MOVBCD VX I
-                            printf("MOVBCD %%V%01x", nib1); //move 3 digits of bcd of VX in I, I+1, I+2 respectively
-                            break; 
+                            int reg = operation[0]&0xf;    
+                            unsigned char ones, tens, hundreds;    
+                            unsigned char value=state->V[reg];    
+                            ones = value % 10;    
+                            value = value / 10;    
+                            tens = value % 10;    
+                            hundreds = value / 10;    
+                            state->ram[state->I] = hundreds;    
+                            state->ram[state->I+1] = tens;    
+                            state->ram[state->I+2] = ones; 
+                            state->PC+=2;
+                            break;
                         }
                     case 0x55:  
                         {//DUMP VX (I)
-                            printf("DUMP %%V%01x, (I)", nib1); //dump V0 to VX included in memory from I to I+X(I unchanged)
+                            //dump V0 to VX included in memory from I to I+X(I unchanged)
+                            for (unsigned char i = 0;i<=nib1;i++){
+                                state->ram[state->I+i] = state->V[i];
+                            }
+                            state->PC+=2;
                             break;
                         }
                     case 0x65:
                         {//DUMP (I) VX
-                            printf("DUMP (I), %%V%01x", nib1);
+                            for (unsigned char i = 0;i<=nib1;i++){
+                                state->V[i] = state->ram[state->I+i];
+                            }
+                            state->PC+=2;
                             break;
                         }
                     default:
@@ -277,7 +339,8 @@ void execute(CPUandRAM *state){
 }
 
 
-int main (int argc, char**argv)    {    
+int main (int argc, char**argv)    {  
+    srand (time(NULL));  
     FILE *f= fopen(argv[1], "rb");    
     if (f==NULL)    
     {    
@@ -295,17 +358,17 @@ int main (int argc, char**argv)    {
     //    
     //Read the file into memory at 0x200 and close it.
 
-    void *temp=malloc(fsize+0x200);    
+    CPUandRAM* system = InitState();
+
+    void *temp=calloc(4096, 1);    
     unsigned char *buffer = (unsigned char*)temp;
     fread(buffer+0x200, fsize, 1, f);    
     fclose(f);    
-
-    int pc = 0x200;    
-    while (pc < (fsize+0x200))    
+    system->ram = buffer;
+    while (system->PC < (fsize+0x200))    
     {    
-        execute(buffer, pc);    
-        pc += 2;    
-        printf ("\n");    
+        execute(system);   
     }    
+    printf("%04x", system->PC);
     return 0;    
 } 
