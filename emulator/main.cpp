@@ -394,6 +394,8 @@ int main (int argc, char**argv)    {
     while (system->PC < (fsize+0x200))    
     {    
         execute(system);   
+        if (system->delay > 0) system->delay--;
+        if (system->sound > 0) system->sound--;
     }    
     printf("%04x", system->PC);
     return 0;    
