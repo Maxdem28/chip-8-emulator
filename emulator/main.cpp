@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdlib.h> 
+#include <cstring>
 #include <time.h> 
 
 using namespace std;
@@ -14,6 +15,10 @@ struct CPUandRAM{
     unsigned char sound;
     unsigned char *ram;
     unsigned char *screen; // points ram(0xF00)
+    unsigned char key_state[16];
+    unsigned char save_key_state[16];
+    bool waiting;
+    unsigned char halt;
 };
 
 CPUandRAM* InitState(){
@@ -49,7 +54,6 @@ void execute(CPUandRAM *state){
     switch(nib0){
         
         case 0x00: //we need to check for second 4 bits
-            //printf("%02x%02x", up, low);
             {
                 if (up == 0x00){
                     if (low == 0xE0){
@@ -238,12 +242,18 @@ void execute(CPUandRAM *state){
                 switch(low){
                     case 0x9E:
                         {//SKIPKEY VX
-                            printf("SKIPKEY %%V%01x", nib1);
+                            if (state->key_state[state->V[nib1]] != 0){
+                                state->PC+=2;
+                            }
+                            state->PC+=2;
                             break;
                         }
                     case 0xA1:
                         {//SKIPNOKEY VX
-                            printf("SKIPNOKEY %%V%01x", nib1);
+                            if (state->key_state[state->V[nib1]] == 0){
+                                state->PC+=2;
+                            }
+                            state->PC+=2;
                             break;
                         }
                     default:
@@ -266,8 +276,24 @@ void execute(CPUandRAM *state){
                         }
                     case 0x0A:
                         {//WAITKEY VX
-                            printf("WAITKEY %%VV01x", nib1);
-                            break;
+                            if (!state->waiting){
+                                state->waiting = true;
+                                memcpy(&state->save_key_state, state->key_state, 16);
+                                break;
+                            }
+                            else{
+                                unsigned char i;
+                                for (i = 0;i<16;i++){
+                                    if (state->save_key_state[i] == 0 && state->key_state[1]){
+                                        state->waiting = false;
+                                        state->V[nib1] = i;
+                                        state->PC+=2;
+                                        break;
+                                    }
+                                    state->save_key_state[i] = state->key_state[i];
+                                }
+                                break;
+                            }
                         }
                     case 0x15:
                         {//MOV VX DELAY
