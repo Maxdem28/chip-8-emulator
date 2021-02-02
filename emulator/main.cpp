@@ -27,7 +27,7 @@ CPUandRAM* InitState(){
     void* tmp = calloc(1024*4, 1); //this will be redone by the file reading
     s->ram = (unsigned char*)tmp;
     s->screen = &s->ram[0xF00];
-    s->SP = 0xFA0;
+    s->SP = 0xEA0;
     s->PC = 0x200;
 
     return s;
@@ -56,11 +56,14 @@ void execute(CPUandRAM *state){
         case 0x00: //we need to check for second 4 bits
             {
                 if (up == 0x00){
-                    if (low == 0xE0){
-                        printf("CLRS\n"); //clear screen  
+                    if (low == 0xE0){//CLRS
+                        memset(state->screen, 0, 64*32/8);
                     }
                     else if (low == 0xEE){
-                        printf("RET\n");  //return
+                        state->SP-=2;
+                        unsigned short target = state->ram[state->SP];
+                        if (target == state->PC){state->halt = 1;}
+                        state->PC = target;
                     }
                 }
                 else{ printf("not implemented CMCODE *%01x%02x", nib1, low);}   //this instruction is almost never used
@@ -70,14 +73,19 @@ void execute(CPUandRAM *state){
         
         case 0x01:
             {   //JMP $NNN
-                unsigned short target = (nib1<<8) + low;
+                unsigned short target = (nib1<<8) | low;
+                if (target == state->PC){state->halt = 1;}
                 state->PC = target;
                 break;
             }
         
         case 0x02:
             { // call $NNN
-                printf("CALL *%01x%02x", nib1, low);
+                state->ram[state->SP] = state->PC+2;
+                state->SP+=2;
+                unsigned short target = (nib1<<8) | low;
+                if (target == state->PC){state->halt = 1;}
+                state->PC = target;
                 break;
             }
 
@@ -210,14 +218,14 @@ void execute(CPUandRAM *state){
 
         case 0x0A:
             { //SETI $NNN
-                state->I = (nib1<<8) + low;
+                state->I = (nib1<<8) | low;
                 state->PC+=2;
                 break;
             }
 
         case 0x0B:
             {   //JMP $NNN(V0)
-                unsigned short target = (nib1<<8) + low + state->V[0];
+                unsigned short target = ((nib1<<8) | low) + state->V[0];
                 state->PC = target;
                 break;
             }
