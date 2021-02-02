@@ -77,7 +77,7 @@ void disassemble(unsigned char *program, int pc){
                 break;
             }
 
-        case 0x08: //check last 4 bits
+        case 0x08: //check last 4 bits a dot duffix indicates that VF is set with carry or other results
             switch(nib3){
                 case 0x0:
                     {
@@ -101,22 +101,147 @@ void disassemble(unsigned char *program, int pc){
                     }
                 case 0x4:
                     {
-                        printf("ADD %%V%01x, %%V%01x", nib2, nib1); 
+                        printf("ADD. %%V%01x, %%V%01x", nib2, nib1); 
                         break;
                     }
                 case 0x5:
                     {
-                        printf("SUB %%V%01x, %%V%01x", nib2, nib1); 
+                        printf("SUB. %%V%01x, %%V%01x", nib2, nib1); 
+                        break;
+                    }
+
+                case 0x6:
+                    {
+                        printf("SHR. %%V%01x", nib2, nib1); 
+                        break;
+                    }
+
+                case 0x7: // backward subs, instead of VX = VX - VY we have VX = VY - VX
+                    {
+                        printf("BSUB. %%V%01x, %%V%01x", nib2, nib1); 
+                        break;
+                    }
+
+                case 0xE:
+                    {
+                        printf("SHL. %%V%01x", nib2, nib1); 
+                        break;
+                    }
+                default:
+                    {
+                        printf("Wrong instruction format");
                         break;
                     }
             }
             break;
         case 0x09:
             {
-                printf("SKPNEQ %%V%01x %%V%01x", nib1, nib2);
+                printf("SKPNEQ %%V%01x, %%V%01x", nib1, nib2);
                 break;
             }
-    
+
+        case 0x0A:
+            {
+                printf("SETI %01x%02x", nib1, low); //I is MAR
+                break;
+            }
+
+        case 0x0B:
+            {
+                printf("JMP *%01x%02x(%%V1)", nib1, low);
+                break;
+            }
+
+        case 0x0C:
+            {
+                printf("RND %%V%01x, $%02x", nib1, low); // V1 &= random(0,255)
+                break;
+            }
+
+        case 0x0D:
+            {
+                printf("DRAW %%V%01x, %%V%01x, $%01x", nib1, nib2, nib3);
+                break;
+            }
+
+        case 0x0E:
+            {
+                switch(low){
+                    case 0x9E:
+                        {
+                            printf("SKIPKEY %%V%01x", nib1);
+                            break;
+                        }
+                    case 0xA1:
+                        {
+                            printf("SKIPNOKEY %%V%01x", nib1);
+                            break;
+                        }
+                    default:
+                        {
+                            printf("Wrong instruction format");
+                            break;
+                        }
+                }
+                break;
+            }
+        
+        case 0x0F:
+            {
+                switch(low){
+                    case 0x07:
+                        {
+                            printf("MOV DELAY, %%V%01x", nib1);
+                            break; 
+                        }
+                    case 0x0A:
+                        {
+                            printf("WAITKEY %%VV01x", nib1);
+                            break;
+                        }
+                    case 0x15:
+                        {
+                            printf("MOV %%V%01x, DELAY", nib1);
+                            break;
+                        }
+                    case 0x18:
+                        {
+                            printf("MOV %%V%01x, SOUND", nib1);
+                            break;
+                        }
+                    case 0x1E:
+                        {
+                            printf("ADD %%V%01x, I", nib1); 
+                            break;
+                        }
+                    case 0x29:
+                        {
+                            printf("SETSPRITE %%V%01x", nib1); //I = location of 4x5 sprite representing character 0-F in VX
+                            break;
+                        }
+                    case 0x33:
+                        {
+                            printf("MOVBCD %%V%01x", nib1); //move 3 digits of bcd of VX in I, I+1, I+2 respectively
+                            break; 
+                        }
+                    case 0x55:  
+                        {
+                            printf("DUMP %%V%01x, (I)", nib1); //dump V0 to VX included in memory from I to I+X(I unchanged)
+                            break;
+                        }
+                    case 0x65:
+                        {   
+                            printf("DUMP (I), %%V%01x", nib1);
+                            break;
+                        }
+                    default:
+                        {
+                            printf("Wrong instruction format");
+                            break;
+                        }
+                }
+                break;
+            }
         default:
             printf("%01x not implemented", nib0);
     }
