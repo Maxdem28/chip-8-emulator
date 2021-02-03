@@ -1,8 +1,9 @@
 #include <iostream>
 #include <stdlib.h> 
 #include <cstring>
-#include <time.h> 
-#include "Platform.hpp"
+#include <time.h>
+#include <chrono>
+#include "Platform.cpp"
 
 using namespace std;
 
@@ -53,7 +54,7 @@ void execute(CPUandRAM *state){
     unsigned char nib1 = up & 0xf;
     unsigned char nib2 = (low >> 4);
     unsigned char nib3 = low & 0xf;
-    //printf("%04x %02x %02x\n", state->PC, operation[0], operation[1]);
+    printf("%04x %02x %02x\n", state->PC, operation[0], operation[1]);
 
     switch(nib0){
         
@@ -63,11 +64,12 @@ void execute(CPUandRAM *state){
                     if (low == 0xE0){//CLRS
                         memset(state->screen, 0, 64*32/8);
                     }
-                    else if (low == 0xEE){
+                    else if (low == 0xEE){//return
                         state->SP-=2;
-                        unsigned short target = state->ram[state->SP];
+                        unsigned short target = state->ram[state->SP] + (state->ram[state->SP+1] << 8);
                         if (target == state->PC){state->halt = 1;}
                         state->PC = target;
+                        break;
                     }
                 }
                 else{ printf("not implemented CMCODE *%01x%02x", nib1, low);}   //this instruction is almost never used
@@ -86,6 +88,8 @@ void execute(CPUandRAM *state){
         case 0x02:
             { // call $NNN
                 state->ram[state->SP] = state->PC+2;
+                state->ram[state->SP+1] = (state->PC+2 >> 8);
+                //printf("%02x%02x address to return\n", state->ram[state->SP+1], state->ram[state->SP]);
                 state->SP+=2;
                 unsigned short target = (nib1<<8) | low;
                 if (target == state->PC){state->halt = 1;}
@@ -246,14 +250,15 @@ void execute(CPUandRAM *state){
         case 0x0D:
             {
                 //Draw sprite
+                //printf("drawing");
                 int lines = nib3;
                 int x = state->V[nib0];
-                int y = state->V[(nib1) >> 4];	
+                int y = state->V[nib1];	
                 int i,j;
                 state->V[0xf] = 0;
                 for (i=0; i<lines; i++){
                     unsigned char *sprite = &state->ram[state->I+i];
-                    int spritebit=7;
+                    unsigned char spritebit=7;
                     for (j=x; j<(x+8) && j<64; j++)
                     {
                         int jover8 = j / 8;     //picks the byte in the row
@@ -434,20 +439,28 @@ int main (int argc, char**argv)    {
 
     CPUandRAM* system = InitState();
 
-    Platform platform("CIPPOTTO", VIDEO_WIDTH*32, VIDEO_HEIGHT*32, VIDEO_WIDTH, VIDEO_HEIGHT); 
+    Platform platform("CIPPOTTO", VIDEO_WIDTH*16, VIDEO_HEIGHT*16, VIDEO_WIDTH, VIDEO_HEIGHT); 
+    auto lastCycleTime = std::chrono::high_resolution_clock::now();
 
     void *temp=calloc(4096, 1);    
     unsigned char *buffer = (unsigned char*)temp;
     fread(buffer+0x200, fsize, 1, f);    
     fclose(f);    
     system->ram = buffer;
-    while (system->PC < (fsize+0x200))    
+    bool quit = false;
+    while (!quit && system->PC < (fsize+0x200))    
     {    
-        execute(system);   
-        if (system->delay > 0) system->delay--;
-        if (system->sound > 0) system->sound--;
-        if (system->halt == 1)break;
-        platform.Update(system->screen, 16384);
+        quit = platform.ProcessInput(system->key_state);
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float dt = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - lastCycleTime).count();
+        if (dt > clocktime){
+            execute(system);   
+            lastCycleTime = currentTime;
+            if (system->delay > 0) system->delay--;
+            if (system->sound > 0) system->sound--;
+            //if (system->halt == 1){quit = true;}
+            platform.Update(system->screen, 8 * VIDEO_WIDTH);
+        }
     }    
     printf("%04x", system->PC);
     return 0;    
