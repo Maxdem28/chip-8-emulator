@@ -2,8 +2,12 @@
 #include <stdlib.h> 
 #include <cstring>
 #include <time.h> 
+#include <platform.hpp>
 
 using namespace std;
+
+const unsigned int VIDEO_HEIGHT = 32;
+const unsigned int VIDEO_WIDTH = 64;
 
 
 struct CPUandRAM{
@@ -203,6 +207,7 @@ void execute(CPUandRAM *state){
                 default:
                     {
                         printf("Wrong instruction format %02x %02x", up, low);
+                        state->PC+=2;
                         break;
                     }
             }
@@ -239,8 +244,42 @@ void execute(CPUandRAM *state){
             }
 
         case 0x0D:
-            {//DRAW VX VY $NN
-                printf("DRAW %%V%01x, %%V%01x, $%01x", nib1, nib2, nib3);
+            {
+                //Draw sprite
+                int lines = nib3;
+                int x = state->V[nib0];
+                int y = state->V[(nib1) >> 4];	
+                int i,j;
+                state->V[0xf] = 0;
+                for (i=0; i<lines; i++){
+                    unsigned char *sprite = &state->ram[state->I+i];
+                    int spritebit=7;
+                    for (j=x; j<(x+8) && j<64; j++)
+                    {
+                        int jover8 = j / 8;     //picks the byte in the row
+                        int jmod8 = j % 8;      //picks the bit in the byte
+                        unsigned char srcbit = (*sprite >> spritebit) & 0x1;
+                        
+                        if (srcbit){
+                            unsigned char *destbyte_p = &state->screen[ (i+y) * (64/8) + jover8];
+                            unsigned char destbyte = *destbyte_p;
+                            unsigned char destmask = (0x80 >> jmod8);
+                            unsigned char destbit = destbyte & destmask;
+
+                            srcbit = srcbit << (7-jmod8);
+                            
+                            if (srcbit & destbit)
+                                state->V[0xf] = 1;
+                            
+                            destbit ^= srcbit;
+                            
+                            destbyte = (destbyte & ~destmask) | destbit;
+
+                            *destbyte_p = destbyte;
+                        }
+                        spritebit--;
+                    }
+                }    
                 state->PC+=2;
                 break;
             }
@@ -266,7 +305,7 @@ void execute(CPUandRAM *state){
                         }
                     default:
                         {
-                            printf("Wrong instruction format");
+                            printf("Wrong instruction format %02x %02x\n", up, low);
                             break;
                         }
                 }
@@ -381,7 +420,8 @@ int main (int argc, char**argv)    {
         printf("error: Couldn't open %s\n", argv[1]);    
         exit(1);    
     }    
-
+    int clocktime = atoi(argv[2]); // in milliseconds
+    if (clocktime <= 0){clocktime = 17;}
     //Get the file size    
     fseek(f, 0L, SEEK_END);    
     int fsize = ftell(f);    
@@ -404,6 +444,7 @@ int main (int argc, char**argv)    {
         execute(system);   
         if (system->delay > 0) system->delay--;
         if (system->sound > 0) system->sound--;
+        if (system->halt == 1)break;
     }    
     printf("%04x", system->PC);
     return 0;    
