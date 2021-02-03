@@ -5,12 +5,12 @@ Instructions
 
 # Disassembler
 ```shell
-gcc main.cpp -o disas
+g++ main.cpp -o disas
 ./disas ROMFILE
 ```
-#Emulator
+# Emulator
 ```shell
-gcc -lSDL2 main.cpp -o emu
+g++ -lSDL2 main.cpp -o emu
 ./emu ROMFILE clocktime(ms)
 ```
 If clock time isnìt specified it defaults to 16, with clocktime==420 there is no delay between operations
