@@ -374,13 +374,13 @@ void execute(CPUandRAM *state){
                     int spritebit=7;
                     for (k=0; k<8; k++)
                     {   
-                        int j = (x+k);
+                        int j = (x+k) % VIDEO_WIDTH;
                         int jover8 = j / 8;     //picks the byte in the row
                         int jmod8 = j % 8;      //picks the bit in the byte
                         unsigned char srcbit = (*sprite >> spritebit) & 0x1;
                         
                         if (srcbit){
-                            unsigned char destbyte = state->screen[ (i+y) * 8 + jover8];
+                            unsigned char destbyte = state->screen[ ((i+y)%VIDEO_HEIGHT) * 8 + jover8];
                             unsigned char destmask = (0x80 >> jmod8);
                             unsigned char destbit = destbyte & destmask;
 
