@@ -12,6 +12,8 @@ If you are on windows it should be fine, haven't tested it tho.
 g++ main.cpp -o disas
 ./disas ROMFILE
 ```
+Disassembler syntax is an Assemlby language wiht AT&T syntax made by me as there is no offical Chip-8 assembly language
+
 # Emulator
 ```shell
 g++ -lSDL2 main.cpp -o emu
