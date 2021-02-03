@@ -1,8 +1,6 @@
 #include "Platform.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
-#include <stdio.h>
-#include <string>
 
 Platform::Platform(char const* title, int windowWidth, int windowHeight, int textureWidth, int textureHeight){
     //Initialize SDL
@@ -22,8 +20,8 @@ Platform::Platform(char const* title, int windowWidth, int windowHeight, int tex
 	if(Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 8192) < 0){
 		printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
 	}
-    gHigh = Mix_LoadWAV("b.wav");
-    if(gHigh == NULL){
+    beeps = Mix_LoadWAV("b.wav");
+    if(beeps == NULL){
         printf("Failed to load beep sound effect! SDL_mixer Error: %s\n", Mix_GetError());
     }	
 }
@@ -46,12 +44,12 @@ void Platform::Translate(void const* buffer){
 }
 
 void Platform::beep(){
-	Mix_PlayChannel(-1, gHigh, 0);
+	Mix_PlayChannelTimed(-1, beeps, 0, 125);
 }
 
 Platform::~Platform(){
-	Mix_FreeChunk(gHigh);
-	gHigh = NULL;
+	Mix_FreeChunk(beeps);
+	beeps = NULL;
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);

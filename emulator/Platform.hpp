@@ -2,9 +2,6 @@
 
 #include <cstdint>
 #include <SDL2/SDL_mixer.h>
-#include <stdio.h>
-#include <string>
-
 class SDL_Window;
 class SDL_Renderer;
 class SDL_Texture;
@@ -24,5 +21,5 @@ private:
     SDL_Renderer* renderer{};
     SDL_Texture* texture{};
     unsigned char* framebuffer;
-    Mix_Chunk *gHigh;
+    Mix_Chunk *beeps;
 };
