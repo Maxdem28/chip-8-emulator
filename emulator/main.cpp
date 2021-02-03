@@ -586,11 +586,11 @@ int main (int argc, char**argv)    {
             if (system->sound > 0) system->sound--;
             //if (system->halt == 1){quit = true;}
             platform.Update(system->screen, VIDEO_WIDTH);
-            /*
+            
             if (system->sound > 0){
                 platform.beep();
-                }
-            */
+            }
+            
         }
     }    
     printf("%04x", system->PC);

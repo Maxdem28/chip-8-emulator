@@ -1,11 +1,14 @@
 #include "Platform.hpp"
 #include <SDL2/SDL.h>
-
+#include <SDL2/SDL_mixer.h>
+#include <stdio.h>
+#include <string>
 
 Platform::Platform(char const* title, int windowWidth, int windowHeight, int textureWidth, int textureHeight){
-	SDL_Init(SDL_INIT_VIDEO);
-	SDL_Init(SDL_INIT_AUDIO);
- 
+    //Initialize SDL
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0){
+        printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
+    }
 	window = SDL_CreateWindow(title, 0, 0, windowWidth, windowHeight, SDL_WINDOW_SHOWN);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -14,27 +17,15 @@ Platform::Platform(char const* title, int windowWidth, int windowHeight, int tex
 		renderer, SDL_PIXELFORMAT_RGB332, SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight);
 		
 	framebuffer = (unsigned char*)malloc(64*32);
-	//memset(framebuffer, 0xFF, 64*32);
-}
 
-void Platform::beep(){
-	// load WAV file
-	SDL_AudioSpec wavSpec;
-	unsigned int wavLength;
-	unsigned char *wavBuffer;
-
-	SDL_AudioDeviceID deviceId = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, 0);
-	if (deviceId == 0){
-		printf("SDL_OpenAudioDevice failed: %s\n", SDL_GetError());
+	//Initialize SDL_mixer
+	if(Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 8192) < 0){
+		printf("SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError());
 	}
-	SDL_LoadWAV("./beep.wav", &wavSpec, &wavBuffer, &wavLength);
-	int success = SDL_QueueAudio(deviceId, wavBuffer, wavLength);
-	if (success < 0){
-		printf("SDL_QueueAudio failed: %s\n", SDL_GetError());
-	}
-	SDL_PauseAudioDevice(deviceId, 0);
-	SDL_CloseAudioDevice(deviceId);
-	SDL_FreeWAV(wavBuffer);
+    gHigh = Mix_LoadWAV("b.wav");
+    if(gHigh == NULL){
+        printf("Failed to load beep sound effect! SDL_mixer Error: %s\n", Mix_GetError());
+    }	
 }
 
 void Platform::Translate(void const* buffer){
@@ -54,10 +45,17 @@ void Platform::Translate(void const* buffer){
     }
 }
 
+void Platform::beep(){
+	Mix_PlayChannel(-1, gHigh, 0);
+}
+
 Platform::~Platform(){
+	Mix_FreeChunk(gHigh);
+	gHigh = NULL;
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
+	Mix_Quit();
 	SDL_Quit();
 }
 
