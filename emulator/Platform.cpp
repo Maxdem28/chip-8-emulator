@@ -2,8 +2,7 @@
 #include <SDL2/SDL.h>
 
 
-Platform::Platform(char const* title, int windowWidth, int windowHeight, int textureWidth, int textureHeight)
-{
+Platform::Platform(char const* title, int windowWidth, int windowHeight, int textureWidth, int textureHeight){
 	SDL_Init(SDL_INIT_VIDEO);
 
 	window = SDL_CreateWindow(title, 0, 0, windowWidth, windowHeight, SDL_WINDOW_SHOWN);
@@ -11,27 +10,53 @@ Platform::Platform(char const* title, int windowWidth, int windowHeight, int tex
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	texture = SDL_CreateTexture(
-		renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight);
+		renderer, SDL_PIXELFORMAT_RGB332, SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight);
+		
+	framebuffer = (unsigned char*)malloc(64*32);
+	//memset(framebuffer, 0xFF, 64*32);
 }
 
-Platform::~Platform()
-{
+void Platform::Translate(void const* buffer){
+	unsigned char* buffer1 = (unsigned char*)buffer;
+
+	for (unsigned char y = 0;y<32;y++){
+        for (unsigned char x = 0;x<8;x++){
+            unsigned char byte = buffer1[x+y*8];
+			for (unsigned char b = 0;b<8;b++){
+				unsigned char bit = (byte >> b) & 0x1;
+				if (bit)
+					framebuffer[8*x+64*y+7-b] = 0x92;
+				else
+					framebuffer[8*x+64*y+7-b] = 0x00;
+			}
+        }
+    }
+}
+
+Platform::~Platform(){
 	SDL_DestroyTexture(texture);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
 }
 
-void Platform::Update(void const* buffer, int pitch)
-{
-	SDL_UpdateTexture(texture, nullptr, buffer, pitch);
+void Platform::Update(void const* buffer, int pitch){
+	Translate(buffer);
+	/*
+	for (unsigned char y = 0;y<32;y++){
+        for (unsigned char x = 0;x<64;x++){
+            printf("%02x", framebuffer[x+y*64]);
+        }
+        printf("\n");
+    }
+	*/
 	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+	SDL_UpdateTexture(texture, NULL, framebuffer, 64);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 }
 
-bool Platform::ProcessInput(uint8_t* keys)
-{
+bool Platform::ProcessInput(uint8_t* keys){
 	bool quit = false;
 
 	SDL_Event event;

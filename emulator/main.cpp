@@ -4,7 +4,7 @@
 #include <time.h>
 #include <chrono>
 #include "Platform.cpp"
-
+#include <bitset>
 using namespace std;
 
 const unsigned int VIDEO_HEIGHT = 32;
@@ -38,6 +38,25 @@ CPUandRAM* InitState(){
     return s;
 }
 
+unsigned char fontset[0x10*5] =
+	{
+		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+		0x20, 0x60, 0x20, 0x20, 0x70, // 1
+		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+		0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+		0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+		0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+		0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+		0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+		0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+		0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+		0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+		0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+		0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+	};
 
 
 
@@ -54,8 +73,23 @@ void execute(CPUandRAM *state){
     unsigned char nib1 = up & 0xf;
     unsigned char nib2 = (low >> 4);
     unsigned char nib3 = low & 0xf;
+    /** debug printing. prints framebuffer and registers
     printf("%04x %02x %02x\n", state->PC, operation[0], operation[1]);
-
+    printf("V: ");
+    for (unsigned char i = 0;i<16;i++){
+        printf("%02x ", state->V[i]);
+    }
+    printf("\n");
+    
+    for (unsigned char y = 0;y<32;y++){
+        for (unsigned char x = 0;x<8;x++){
+            //printf("%02x", state->screen[x+y*64]);
+            bitset<8> b(state->screen[x+y*8]);
+            cout << b;
+        }
+        printf("\n");
+    }
+    */
     switch(nib0){
         
         case 0x00: //we need to check for second 4 bits
@@ -249,16 +283,17 @@ void execute(CPUandRAM *state){
 
         case 0x0D:
             {
+                
                 //Draw sprite
-                //printf("drawing");
                 int lines = nib3;
-                int x = state->V[nib0];
-                int y = state->V[nib1];	
+                int x = state->V[nib1];
+                int y = state->V[nib2];	
                 int i,j;
+                
                 state->V[0xf] = 0;
                 for (i=0; i<lines; i++){
                     unsigned char *sprite = &state->ram[state->I+i];
-                    unsigned char spritebit=7;
+                    int spritebit=7;
                     for (j=x; j<(x+8) && j<64; j++)
                     {
                         int jover8 = j / 8;     //picks the byte in the row
@@ -266,7 +301,7 @@ void execute(CPUandRAM *state){
                         unsigned char srcbit = (*sprite >> spritebit) & 0x1;
                         
                         if (srcbit){
-                            unsigned char *destbyte_p = &state->screen[ (i+y) * (64/8) + jover8];
+                            unsigned char *destbyte_p = &state->screen[ (i+y) * (8) + jover8];
                             unsigned char destbyte = *destbyte_p;
                             unsigned char destmask = (0x80 >> jmod8);
                             unsigned char destbit = destbyte & destmask;
@@ -284,10 +319,13 @@ void execute(CPUandRAM *state){
                         }
                         spritebit--;
                     }
-                }    
+                }
+                
+                
                 state->PC+=2;
                 break;
             }
+
 
         case 0x0E:
             {
@@ -459,7 +497,7 @@ int main (int argc, char**argv)    {
             if (system->delay > 0) system->delay--;
             if (system->sound > 0) system->sound--;
             //if (system->halt == 1){quit = true;}
-            platform.Update(system->screen, 8 * VIDEO_WIDTH);
+            platform.Update(system->screen, 4*VIDEO_WIDTH);
         }
     }    
     printf("%04x", system->PC);
