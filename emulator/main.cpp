@@ -10,6 +10,106 @@ using namespace std;
 const unsigned int VIDEO_HEIGHT = 32;
 const unsigned int VIDEO_WIDTH = 64;
 
+const unsigned char fontset[0x10*5] = //manually designed sprite for 0-F characters
+	{//all sprites have a 4*5 0-padding on their right
+		0b01100000, 
+        0b10010000, 
+        0b10010000, 
+        0b10010000, 
+        0b01100000, // 0
+
+		0b01000000,
+        0b11000000,
+        0b01000000,
+        0b01000000,
+        0b11100000, // 1
+
+        0b01100000,
+        0b10010000,
+        0b00100000,
+        0b01000000,
+        0b11110000, // 2
+
+        0b11100000,
+        0b00010000,
+        0b01100000,
+        0b00010000,
+        0b11100000, // 3
+
+        0b01100000,
+        0b10100000,
+        0b10100000,
+        0b11110000,
+        0b00100000, // 4
+
+        0b11110000,
+        0b10000000,
+        0b11110000,
+        0b00010000,
+        0b11110000, // 5
+
+        0b01110000,
+        0b10000000,
+        0b11100000,
+        0b10010000,
+        0b01100000, // 6
+
+        0b11100000,
+        0b00100000,
+        0b00100000,
+        0b01000000,
+        0b01000000, // 7
+
+        0b01100000,
+        0b10010000,
+        0b01100000,
+        0b10010000,
+        0b01100000, // 8
+
+        0b01100000,
+        0b10010000,
+        0b01110000,
+        0b00010000,
+        0b01100000, // 9
+
+        0b01100000,
+        0b10010000,
+        0b11110000,
+        0b10010000,
+        0b10010000, // A
+
+        0b11100000,
+        0b10010000,
+        0b11100000,
+        0b10010000,
+        0b11100000, // B
+
+        0b01100000,
+        0b10010000,
+        0b10000000,
+        0b10010000,
+        0b01100000, //C
+
+        0b11100000,
+        0b10010000,
+        0b10010000,
+        0b10010000,
+        0b11100000, // D
+
+        0b01100000,
+        0b10000000,
+        0b11100000,
+        0b10000000,
+        0b01100000, // E
+
+        0b11100000,
+        0b10000000,
+        0b11000000,
+        0b10000000,
+        0b10000000, // F        
+	};
+
+
 
 struct CPUandRAM{
     unsigned char V[16];
@@ -34,30 +134,8 @@ CPUandRAM* InitState(){
     s->screen = &s->ram[0xF00];
     s->SP = 0xEA0;
     s->PC = 0x200;
-
     return s;
 }
-
-unsigned char fontset[0x10*5] =
-	{
-		0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-		0x20, 0x60, 0x20, 0x20, 0x70, // 1
-		0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-		0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-		0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-		0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-		0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-		0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-		0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-		0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-		0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-		0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-		0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-		0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-		0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-		0xF0, 0x80, 0xF0, 0x80, 0x80  // F
-	};
-
 
 
 /**
@@ -73,14 +151,15 @@ void execute(CPUandRAM *state){
     unsigned char nib1 = up & 0xf;
     unsigned char nib2 = (low >> 4);
     unsigned char nib3 = low & 0xf;
-    /** debug printing. prints framebuffer and registers
+     // debug printing. prints framebuffer and registers
+    /**
     printf("%04x %02x %02x\n", state->PC, operation[0], operation[1]);
     printf("V: ");
     for (unsigned char i = 0;i<16;i++){
         printf("%02x ", state->V[i]);
     }
     printf("\n");
-    
+    /*
     for (unsigned char y = 0;y<32;y++){
         for (unsigned char x = 0;x<8;x++){
             //printf("%02x", state->screen[x+y*64]);
@@ -405,7 +484,8 @@ void execute(CPUandRAM *state){
                         }
                     case 0x29:
                         {//SETSPRITE VX
-                            printf("SETSPRITE %%V%01x", nib1); //I = location of 4x5 sprite representing character 0-F in VX
+                            state->I = state->V[nib1]*5;
+                            state->PC+=2;
                             break;
                         }
                     case 0x33:
@@ -463,8 +543,10 @@ int main (int argc, char**argv)    {
         printf("error: Couldn't open %s\n", argv[1]);    
         exit(1);    
     }    
-    int clocktime = atoi(argv[2]); // in milliseconds
-    if (clocktime <= 0){clocktime = 17;}
+    int clocktime = 0;
+    if (argc > 2) clocktime = atoi(argv[2]); // in milliseconds
+    if (clocktime <= 0){clocktime = 16;}
+
     //Get the file size    
     fseek(f, 0L, SEEK_END);    
     int fsize = ftell(f);    
@@ -485,19 +567,30 @@ int main (int argc, char**argv)    {
     fread(buffer+0x200, fsize, 1, f);    
     fclose(f);    
     system->ram = buffer;
+
+    for (unsigned char i = 0;i<80;i++) {
+        system->ram[i] = fontset[i]; //load fonts in address 0x00-0x50
+    }
     bool quit = false;
     while (!quit && system->PC < (fsize+0x200))    
     {    
         quit = platform.ProcessInput(system->key_state);
         auto currentTime = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - lastCycleTime).count();
-        if (dt > clocktime){
+        if (dt > clocktime || clocktime == 420){
+            unsigned char old_pc = system->PC;
             execute(system);   
             lastCycleTime = currentTime;
             if (system->delay > 0) system->delay--;
             if (system->sound > 0) system->sound--;
             //if (system->halt == 1){quit = true;}
-            platform.Update(system->screen, 4*VIDEO_WIDTH);
+            platform.Update(system->screen, VIDEO_WIDTH);
+            /* sound is broken
+            if (system->sound > 0){
+                platform.beep();
+                }
+            */
+            if (system->PC == old_pc){printf("Loop detected");}
         }
     }    
     printf("%04x", system->PC);

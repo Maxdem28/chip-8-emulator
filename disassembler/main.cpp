@@ -196,7 +196,7 @@ void disassemble(unsigned char *program, int pc){
                         }
                     case 0x0A:
                         {
-                            printf("WAITKEY %%VV01x", nib1);
+                            printf("WAITKEY %%V%01x", nib1);
                             break;
                         }
                     case 0x15:

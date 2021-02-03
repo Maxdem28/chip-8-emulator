@@ -4,7 +4,8 @@
 
 Platform::Platform(char const* title, int windowWidth, int windowHeight, int textureWidth, int textureHeight){
 	SDL_Init(SDL_INIT_VIDEO);
-
+	SDL_Init(SDL_INIT_AUDIO);
+ 
 	window = SDL_CreateWindow(title, 0, 0, windowWidth, windowHeight, SDL_WINDOW_SHOWN);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -14,6 +15,26 @@ Platform::Platform(char const* title, int windowWidth, int windowHeight, int tex
 		
 	framebuffer = (unsigned char*)malloc(64*32);
 	//memset(framebuffer, 0xFF, 64*32);
+}
+
+void Platform::beep(){
+	// load WAV file
+	SDL_AudioSpec wavSpec;
+	unsigned int wavLength;
+	unsigned char *wavBuffer;
+
+	SDL_AudioDeviceID deviceId = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &wavSpec, NULL, 0);
+	if (deviceId == 0){
+		printf("SDL_OpenAudioDevice failed: %s\n", SDL_GetError());
+	}
+	SDL_LoadWAV("beep.wav", &wavSpec, &wavBuffer, &wavLength);
+	int success = SDL_QueueAudio(deviceId, wavBuffer, wavLength);
+	if (success < 0){
+		printf("SDL_QueueAudio failed: %s\n", SDL_GetError());
+	}
+	SDL_PauseAudioDevice(deviceId, 0);
+	SDL_CloseAudioDevice(deviceId);
+	SDL_FreeWAV(wavBuffer);
 }
 
 void Platform::Translate(void const* buffer){
@@ -51,7 +72,7 @@ void Platform::Update(void const* buffer, int pitch){
     }
 	*/
 	SDL_RenderClear(renderer);
-	SDL_UpdateTexture(texture, NULL, framebuffer, 64);
+	SDL_UpdateTexture(texture, NULL, framebuffer, pitch);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 }
