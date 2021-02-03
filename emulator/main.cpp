@@ -48,7 +48,7 @@ const unsigned char fontset[0x10*5] = //manually designed sprite for 0-F charact
         0b00010000,
         0b11110000, // 5
 
-        0b01110000,
+        0b01100000,
         0b10000000,
         0b11100000,
         0b10010000,
@@ -96,11 +96,11 @@ const unsigned char fontset[0x10*5] = //manually designed sprite for 0-F charact
         0b10010000,
         0b11100000, // D
 
-        0b01100000,
+        0b11100000,
         0b10000000,
         0b11100000,
         0b10000000,
-        0b01100000, // E
+        0b11100000, // E
 
         0b11100000,
         0b10000000,
