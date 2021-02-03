@@ -579,7 +579,8 @@ int main (int argc, char**argv)    {
         float dt = std::chrono::duration<float, std::chrono::milliseconds::period>(currentTime - lastCycleTime).count();
         if (dt > clocktime || clocktime == 420){
             unsigned char old_pc = system->PC;
-            execute(system);   
+            for (unsigned char i = 0;i<8;i++)
+                execute(system);   
             lastCycleTime = currentTime;
             if (system->delay > 0) system->delay--;
             if (system->sound > 0) system->sound--;
@@ -590,7 +591,6 @@ int main (int argc, char**argv)    {
                 platform.beep();
                 }
             */
-            if (system->PC == old_pc){printf("Loop detected");}
         }
     }    
     printf("%04x", system->PC);
