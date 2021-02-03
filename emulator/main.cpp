@@ -289,8 +289,8 @@ void execute(CPUandRAM *state){
                 case 0x5:
                     {//SUB. VY VX
                         short sub = state->V[nib1] - state->V[nib2];
-                        if (sub < 0){state->V[0xF] = 1;}
-                        else {state->V[0xF] = 0;}
+                        if (sub < 0){state->V[0xF] = 0;}
+                        else {state->V[0xF] = 1;}
                         state->V[nib1] -= state->V[nib2];
                         state->PC+=2; 
                         break;
@@ -307,8 +307,8 @@ void execute(CPUandRAM *state){
                 case 0x7: // backward subs, instead of VX = VX - VY we have VX = VY - VX
                     {//SUB. VY VX
                         short sub = state->V[nib2] - state->V[nib1];
-                        if (sub < 0){state->V[0xF] = 1;}
-                        else {state->V[0xF] = 0;}
+                        if (sub < 0){state->V[0xF] = 0;}
+                        else {state->V[0xF] = 1;}
                         state->V[nib1] = state->V[nib2] - state->V[nib1];
                         state->PC+=2; 
                         break;
@@ -374,14 +374,13 @@ void execute(CPUandRAM *state){
                     int spritebit=7;
                     for (k=0; k<8; k++)
                     {   
-                        int j = (x+k) % VIDEO_WIDTH;
+                        int j = (x+k);
                         int jover8 = j / 8;     //picks the byte in the row
                         int jmod8 = j % 8;      //picks the bit in the byte
                         unsigned char srcbit = (*sprite >> spritebit) & 0x1;
                         
                         if (srcbit){
-                            unsigned char *destbyte_p = &state->screen[ ((i+y)%VIDEO_HEIGHT) * 8 + jover8];
-                            unsigned char destbyte = *destbyte_p;
+                            unsigned char destbyte = state->screen[ (i+y) * 8 + jover8];
                             unsigned char destmask = (0x80 >> jmod8);
                             unsigned char destbit = destbyte & destmask;
 
@@ -393,8 +392,8 @@ void execute(CPUandRAM *state){
                             destbit ^= srcbit;
                             
                             destbyte = (destbyte & ~destmask) | destbit;
-
-                            *destbyte_p = destbyte;
+                            state->screen[ (i+y) * 8 + jover8] = destbyte;
+                            
                         }
                         spritebit--;
                     }
