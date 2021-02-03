@@ -585,7 +585,7 @@ int main (int argc, char**argv)    {
             if (system->delay > 0) system->delay--;
             if (system->sound > 0) system->sound--;
             //if (system->halt == 1){quit = true;}
-            platform.Update(system->screen, VIDEO_WIDTH);
+            platform.Update(system->screen, platform.pixelsize()*VIDEO_WIDTH);
             
             if (system->sound > 0){
                 platform.beep();

@@ -15,11 +15,12 @@ public:
     bool ProcessInput(uint8_t* keys);
     void Translate(void const* buffer);
     void beep();
+    unsigned char pixelsize();
 
 private:
     SDL_Window* window{};
     SDL_Renderer* renderer{};
     SDL_Texture* texture{};
-    unsigned char* framebuffer;
+    unsigned int* framebuffer;
     Mix_Chunk *beeps;
 };

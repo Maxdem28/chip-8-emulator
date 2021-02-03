@@ -12,9 +12,9 @@ Platform::Platform(char const* title, int windowWidth, int windowHeight, int tex
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
 	texture = SDL_CreateTexture(
-		renderer, SDL_PIXELFORMAT_RGB332, SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight);
+		renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, textureWidth, textureHeight);
 		
-	framebuffer = (unsigned char*)malloc(64*32);
+	framebuffer = (unsigned int*)malloc(64*32*32);
 
 	//Initialize SDL_mixer
 	if(Mix_OpenAudio(44100, AUDIO_S16SYS, 2, 8192) < 0){
@@ -35,7 +35,7 @@ void Platform::Translate(void const* buffer){
 			for (unsigned char b = 0;b<8;b++){
 				unsigned char bit = (byte >> b) & 0x1;
 				if (bit)
-					framebuffer[8*x+64*y+7-b] = 0x92;
+					framebuffer[8*x+64*y+7-b] = 0xFF8BAC0F; //color of lit pixels in ARGB888 for best customizability
 				else
 					framebuffer[8*x+64*y+7-b] = 0x00;
 			}
@@ -45,6 +45,10 @@ void Platform::Translate(void const* buffer){
 
 void Platform::beep(){
 	Mix_PlayChannelTimed(-1, beeps, 0, 125);
+}
+
+unsigned char Platform::pixelsize(){
+	return sizeof(framebuffer[0]);
 }
 
 Platform::~Platform(){
