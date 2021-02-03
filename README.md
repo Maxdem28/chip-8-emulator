@@ -16,11 +16,10 @@ Disassembler syntax is an Assemlby language with AT&T syntax made by me as there
 
 # Emulator
 ```shell
-g++ -lSDL2 main.cpp -o emu
+g++ main.cpp -lSDL2 -lSDL2_mixer -o emu
 ./emu ROMFILE clocktime(ms)
 ```
 
 Clocktime indicates how many milliseconds pass between 2 cycles. In 1 cycle 8 instructions gets executed, giving us approximately 500 operations per second.
 If clock time isnìt specified it defaults to 16, with clocktime==420 there is no delay between operations
 
-Sound is broken, can't test it on my machine as SDL doesn't find my audio cards
