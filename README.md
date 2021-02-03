@@ -5,7 +5,7 @@ A very simple Chip-8 emulator and disassembler
 gcc and SDL2, install them through your distro's package manager
 If you are on windows it should be fine, haven't tested it tho.
 
-# # Instructions
+# Instructions
 
 # Disassembler
 ```shell
