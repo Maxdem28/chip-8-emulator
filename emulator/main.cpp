@@ -367,20 +367,21 @@ void execute(CPUandRAM *state){
                 int lines = nib3;
                 int x = state->V[nib1];
                 int y = state->V[nib2];	
-                int i,j;
-                
+                int i,j, k;
                 state->V[0xf] = 0;
                 for (i=0; i<lines; i++){
                     unsigned char *sprite = &state->ram[state->I+i];
                     int spritebit=7;
-                    for (j=x; j<(x+8) && j<64; j++)
-                    {
+                    int modi = i % VIDEO_HEIGHT;
+                    for (k=0; k<8; k++)
+                    {   
+                        int j = (x+k) % VIDEO_WIDTH;
                         int jover8 = j / 8;     //picks the byte in the row
                         int jmod8 = j % 8;      //picks the bit in the byte
                         unsigned char srcbit = (*sprite >> spritebit) & 0x1;
                         
                         if (srcbit){
-                            unsigned char *destbyte_p = &state->screen[ (i+y) * (8) + jover8];
+                            unsigned char *destbyte_p = &state->screen[ (modi+y) * 8 + jover8];
                             unsigned char destbyte = *destbyte_p;
                             unsigned char destmask = (0x80 >> jmod8);
                             unsigned char destbit = destbyte & destmask;
@@ -445,6 +446,7 @@ void execute(CPUandRAM *state){
                         }
                     case 0x0A:
                         {//WAITKEY VX
+                            printf("Wating for: %02x\n", state->V[nib1]);
                             if (!state->waiting){
                                 state->waiting = true;
                                 memcpy(&state->save_key_state, state->key_state, 16);
@@ -453,10 +455,11 @@ void execute(CPUandRAM *state){
                             else{
                                 unsigned char i;
                                 for (i = 0;i<16;i++){
-                                    if (state->save_key_state[i] == 0 && state->key_state[1]){
+                                    if (state->save_key_state[i] == 0 && state->key_state[i]){
                                         state->waiting = false;
                                         state->V[nib1] = i;
                                         state->PC+=2;
+                                        printf("%02x was pressed\n", state->V[nib1]);
                                         break;
                                     }
                                     state->save_key_state[i] = state->key_state[i];
@@ -585,7 +588,7 @@ int main (int argc, char**argv)    {
             if (system->sound > 0) system->sound--;
             //if (system->halt == 1){quit = true;}
             platform.Update(system->screen, VIDEO_WIDTH);
-            /* sound is broken
+            /*
             if (system->sound > 0){
                 platform.beep();
                 }

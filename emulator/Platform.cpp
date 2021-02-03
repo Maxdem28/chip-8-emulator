@@ -71,7 +71,7 @@ void Platform::Update(void const* buffer, int pitch){
         printf("\n");
     }
 	*/
-	SDL_RenderClear(renderer);
+	//SDL_RenderClear(renderer);
 	SDL_UpdateTexture(texture, NULL, framebuffer, pitch);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
