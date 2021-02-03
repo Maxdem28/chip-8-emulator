@@ -23,11 +23,11 @@ void Platform::beep(){
 	unsigned int wavLength;
 	unsigned char *wavBuffer;
 
-	SDL_AudioDeviceID deviceId = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(0, 0), 0, &wavSpec, NULL, 0);
+	SDL_AudioDeviceID deviceId = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, 0);
 	if (deviceId == 0){
 		printf("SDL_OpenAudioDevice failed: %s\n", SDL_GetError());
 	}
-	SDL_LoadWAV("beep.wav", &wavSpec, &wavBuffer, &wavLength);
+	SDL_LoadWAV("./beep.wav", &wavSpec, &wavBuffer, &wavLength);
 	int success = SDL_QueueAudio(deviceId, wavBuffer, wavLength);
 	if (success < 0){
 		printf("SDL_QueueAudio failed: %s\n", SDL_GetError());
