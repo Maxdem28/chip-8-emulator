@@ -2,7 +2,7 @@
 #include <stdlib.h> 
 #include <cstring>
 #include <time.h> 
-#include <platform.hpp>
+#include "Platform.hpp"
 
 using namespace std;
 
@@ -434,6 +434,8 @@ int main (int argc, char**argv)    {
 
     CPUandRAM* system = InitState();
 
+    Platform platform("CIPPOTTO", VIDEO_WIDTH*32, VIDEO_HEIGHT*32, VIDEO_WIDTH, VIDEO_HEIGHT); 
+
     void *temp=calloc(4096, 1);    
     unsigned char *buffer = (unsigned char*)temp;
     fread(buffer+0x200, fsize, 1, f);    
@@ -445,6 +447,7 @@ int main (int argc, char**argv)    {
         if (system->delay > 0) system->delay--;
         if (system->sound > 0) system->sound--;
         if (system->halt == 1)break;
+        platform.Update(system->screen, 16384);
     }    
     printf("%04x", system->PC);
     return 0;    
