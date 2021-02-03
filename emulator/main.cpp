@@ -445,7 +445,7 @@ void execute(CPUandRAM *state){
                         }
                     case 0x0A:
                         {//WAITKEY VX
-                            printf("Wating for key\n", state->V[nib1]);
+                            //printf("Wating for key\n", state->V[nib1]);
                             if (!state->waiting){
                                 state->waiting = true;
                                 memcpy(&state->save_key_state, state->key_state, 16);
