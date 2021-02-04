@@ -545,7 +545,7 @@ int main (int argc, char**argv)    {
     }    
     int clocktime = 0;
     if (argc > 2) clocktime = atoi(argv[2]); // in milliseconds
-    if (clocktime <= 0){clocktime = 16;}
+    if (clocktime <= 0){clocktime = 17;}
 
     //Get the file size    
     fseek(f, 0L, SEEK_END);    
