@@ -2,7 +2,7 @@
 A very simple Chip-8 emulator and disassembler
 
 # Dependencies
-gcc and SDL2, install them through your distro's package manager
+gcc, SDL2 and SDL2_mixer, install them through your distro's package manager
 If you are on windows it should be fine, haven't tested it tho.
 
 # Instructions
